@@ -139,21 +139,30 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
             />
           </Field>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Submission deadline" hint="Commit phase ends here.">
-              <Input
-                type="datetime-local"
-                value={submissionDeadline}
-                onChange={(e) => setSubmissionDeadline(e.target.value)}
-              />
-            </Field>
-            <Field label="Reveal deadline" hint="Reveal phase ends here; judging follows.">
-              <Input
-                type="datetime-local"
-                value={revealDeadline}
-                onChange={(e) => setRevealDeadline(e.target.value)}
-              />
-            </Field>
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3.5">
+            <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-violet-400" /> Commit
+              <span className="text-zinc-600">→</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Reveal
+              <span className="text-zinc-600">→</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" /> Judge
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Submission deadline" hint="Commit phase ends here.">
+                <Input
+                  type="datetime-local"
+                  value={submissionDeadline}
+                  onChange={(e) => setSubmissionDeadline(e.target.value)}
+                />
+              </Field>
+              <Field label="Reveal deadline" hint="Reveal phase ends here; judging follows.">
+                <Input
+                  type="datetime-local"
+                  value={revealDeadline}
+                  onChange={(e) => setRevealDeadline(e.target.value)}
+                />
+              </Field>
+            </div>
           </div>
 
           <Field label="Reward (RITUAL)" hint="Locked in the contract on create.">
