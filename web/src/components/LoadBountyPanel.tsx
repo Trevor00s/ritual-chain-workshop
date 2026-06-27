@@ -74,7 +74,7 @@ export function LoadBountyPanel({
                   }}
                   className={`rounded-lg px-2 py-1 font-mono text-xs ring-1 ring-inset transition-colors ${
                     selectedId?.toString() === id
-                      ? "bg-indigo-500/20 text-indigo-200 ring-indigo-500/40"
+                      ? "bg-violet-500/20 text-violet-200 ring-violet-500/40"
                       : "bg-black/20 text-zinc-300 ring-white/10 hover:bg-white/10"
                   }`}
                 >
