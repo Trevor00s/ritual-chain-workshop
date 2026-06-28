@@ -5,7 +5,6 @@ import {
   useAccount,
   useConnect,
   useDisconnect,
-  useChainId,
   useSwitchChain,
 } from "wagmi";
 import { ritualChain } from "@/config/wagmi";
@@ -13,20 +12,22 @@ import { shortenAddress } from "@/lib/format";
 import { Button, Badge, Spinner } from "@/components/ui";
 
 export function WalletConnect() {
-  const { address, isConnected } = useAccount();
+  // `chainId` here is the connected wallet's ACTUAL chain (can be a chain that
+  // isn't in our config — e.g. Ethereum mainnet). useChainId() would only ever
+  // return our configured chain, so it can't detect a wrong network.
+  const { address, isConnected, chainId } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
-  const chainId = useChainId();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   const [open, setOpen] = useState(false);
 
-  const wrongChain = isConnected && chainId !== ritualChain.id;
+  const wrongChain = isConnected && chainId !== undefined && chainId !== ritualChain.id;
 
-  // Auto-switch to Ritual Chain whenever a connected wallet is on the wrong
-  // network. wagmi falls back to wallet_addEthereumChain (using ritualChain's
-  // rpc/explorer) if the chain isn't in the wallet yet. The ref makes this a
-  // one-shot per wrong-chain state, so a rejected prompt isn't spammed — it
-  // resets once the wallet is back on Ritual.
+  // Auto switch/add Ritual whenever the wallet is connected on the wrong chain.
+  // wagmi calls wallet_switchEthereumChain and falls back to
+  // wallet_addEthereumChain (using ritualChain's rpc/explorer/native currency)
+  // if the wallet doesn't have it yet. One-shot per wrong-chain state so a
+  // rejected prompt isn't spammed; resets once back on Ritual.
   const autoSwitched = useRef(false);
   useEffect(() => {
     if (wrongChain) {
