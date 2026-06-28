@@ -34,8 +34,8 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
   const { isConnected } = useAccount();
   const [title, setTitle] = useState("");
   const [rubric, setRubric] = useState("");
-  const [submissionDeadline, setSubmissionDeadline] = useState(defaultDeadline(60));
-  const [revealDeadline, setRevealDeadline] = useState(defaultDeadline(120));
+  const [submissionDeadline, setSubmissionDeadline] = useState(defaultDeadline(10));
+  const [revealDeadline, setRevealDeadline] = useState(defaultDeadline(60));
   const [reward, setReward] = useState("");
   const [createdId, setCreatedId] = useState<bigint | null>(null);
 
@@ -146,6 +146,28 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Reveal
               <span className="text-zinc-600">→</span>
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" /> Judge
+            </div>
+            <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                Quick set
+              </span>
+              {[
+                { label: "Test · 10m / 1h", s: 10, r: 60 },
+                { label: "1h / 6h", s: 60, r: 360 },
+                { label: "1d / 3d", s: 1440, r: 4320 },
+              ].map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => {
+                    setSubmissionDeadline(defaultDeadline(p.s));
+                    setRevealDeadline(defaultDeadline(p.r));
+                  }}
+                  className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-zinc-300 transition hover:bg-white/[0.08]"
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Submission deadline" hint="Commit phase ends here.">
