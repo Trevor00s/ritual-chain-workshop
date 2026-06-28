@@ -11,6 +11,8 @@ Answers stay *sealed* behind a commit–reveal flow, are judged by Ritual AI in 
 ![Tests](https://img.shields.io/badge/tests-11%20passing-3fb950)
 ![Ritual](https://img.shields.io/badge/Ritual-chain%201979-8b5cf6)
 
+**[▶ Live demo](https://trevor00s.github.io/ritual-chain-workshop/)** · contract [`0x378F…34B0`](https://explorer.ritualfoundation.org/address/0x378F770b8DE19b8eFdf5e69ab129D38c321d34B0) on Ritual (chain 1979)
+
 </div>
 
 ---
@@ -124,6 +126,10 @@ A polished dashboard ("Sealed") built with **Next.js 16 · TypeScript · Tailwin
 | Architecture note (commit-reveal vs Ritual-native) | [`SUBMISSION.md`](SUBMISSION.md) · [`ADVANCED.md`](ADVANCED.md) |
 | Advanced track (design) | [`ADVANCED.md`](ADVANCED.md) |
 | Reflection (5–8 sentences) | [`SUBMISSION.md`](SUBMISSION.md) |
+
+## Reflection — what's public, hidden, and decided by AI vs. a human
+
+Public: the rules — prompt, rubric, deadlines, reward, and each participant's commitment hash — so the contest is auditable. Hidden: each answer's content during the submission phase, so no one can copy an earlier entry (revealed after the deadline, or kept encrypted in a TEE design). The AI does the first pass — scoring every revealed answer against the rubric in one batch, fast and consistently. A human keeps the final say — ratifying the winner and releasing the reward — because rubrics are interpretive and accountability for real money should rest with a person. In short: the chain enforces fairness and timing, the AI recommends a ranking, and a human makes the final call.
 
 ---
 
