@@ -77,13 +77,32 @@ the plaintext with a hash so anyone can confirm it matches what was sealed.
 | Owner publishes the decrypted verdict (optional) | `SealedJudge.publishVerdict(bountyId, text)` |
 | Owner pays the winner | `SealedJudge.finalizeWinner(bountyId, winnerIndex)` |
 
-## Honest limitation
+## Live run (verified on Ritual)
 
-The contract, the ECIES encryption (verified round-trip), the on-chain ciphertext storage, access
-control, and request encoding are all implemented and tested. The one part that needs **live**
-Ritual infrastructure is the in-enclave step at `judgeAll`: a funded RitualWallet, a registered TEE
-executor, and a real DKMS-derived bounty key. Local hardhat tests cover everything up to (and the
-guards around) that call, since the `0x0802` precompile cannot run in a local node.
+The full lifecycle was exercised **live on Ritual** (bounty #1 on `0x14D0…84c5`):
+
+| Step | Tx |
+|---|---|
+| createBounty | `0x2db2c1de5979d34c7454936a3f36aec48e9ac200ac1858f8a9678067e2c53c75` |
+| submitSealed (ECIES ciphertext, **no plaintext on-chain**) | `0xdbc31920b0c00a4d02bb1a5530934054866545c5a8b4f0fe15a524fd687c9230` |
+| fund RitualWallet escrow (0.35 RIT, locked) | `0xc0ce06ef1bd2ef39c1d078acbb3882b42ae99b2b1a75cfbf619c9902c41f896e` |
+| **judgeAll — live LLM precompile in the TEE** | `0x336bc2339f53bac0626bd8ef5710605757020aa22ed7b89e093ea36cc1b6a446` |
+| publishVerdict | `0x090dda6b9c734a893eca7be81e2316278a1a57e91865eaccce9a3a7799853851` |
+| finalizeWinner (paid winner, finalized) | `0x2c8acec70f742899b49ab5e6bc3fad0b47c05ec0df3193416cea47e0a0c40975` |
+
+The live `judgeAll` returned a real **GLM-4.7-FP8** verdict: `{"winnerIndex": 0, "summary": "ok"}`,
+via the registered executor `0xB42e435c4252A5a2E7440e37B609F00c61a0c91B`. Reproduce with
+`hardhat/scripts/live-sealed-demo.mjs` (create→submit→judge→finalize) or `scripts/judge-now.mjs`
+(escrow-fund + judge an existing bounty). The LLM call needs ≥ ~0.31 RIT **locked** in RitualWallet.
+
+**Scope of the live run, honestly.** The *submission* is genuinely sealed — the ECIES ciphertext is
+the only thing stored, with no plaintext on-chain (verified: `answer plaintext present? false`). The
+live *verdict* used the proven **inline** judge prompt, so the answer is present in the `judgeAll`
+calldata — that is the path the testnet executor runs today. The fully-private judging path, where
+the executor decrypts the on-chain `encryptedSecrets` **inside the enclave** (no answer in calldata),
+is implemented in `ritualSecrets.ts` (`buildSealedJudgeInput`) and needs executor secret-decryption
+support to complete end to end. The testnet LLM gateway is also intermittent, so `judgeAll` can need
+a retry. Local hardhat tests cover the contract guards around the precompile call.
 
 ## Commit-reveal vs this Sealed track
 
