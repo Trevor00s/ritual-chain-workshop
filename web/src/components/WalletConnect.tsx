@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useAccount,
   useConnect,
@@ -10,17 +10,34 @@ import {
 } from "wagmi";
 import { ritualChain } from "@/config/wagmi";
 import { shortenAddress } from "@/lib/format";
-import { Button, Badge } from "@/components/ui";
+import { Button, Badge, Spinner } from "@/components/ui";
 
 export function WalletConnect() {
   const { address, isConnected } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const chainId = useChainId();
-  const { switchChain } = useSwitchChain();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
   const [open, setOpen] = useState(false);
 
   const wrongChain = isConnected && chainId !== ritualChain.id;
+
+  // Auto-switch to Ritual Chain whenever a connected wallet is on the wrong
+  // network. wagmi falls back to wallet_addEthereumChain (using ritualChain's
+  // rpc/explorer) if the chain isn't in the wallet yet. The ref makes this a
+  // one-shot per wrong-chain state, so a rejected prompt isn't spammed — it
+  // resets once the wallet is back on Ritual.
+  const autoSwitched = useRef(false);
+  useEffect(() => {
+    if (wrongChain) {
+      if (!autoSwitched.current) {
+        autoSwitched.current = true;
+        switchChain({ chainId: ritualChain.id });
+      }
+    } else {
+      autoSwitched.current = false;
+    }
+  }, [wrongChain, switchChain]);
 
   if (isConnected && address) {
     return (
@@ -28,9 +45,16 @@ export function WalletConnect() {
         {wrongChain ? (
           <Button
             variant="secondary"
+            disabled={isSwitching}
             onClick={() => switchChain({ chainId: ritualChain.id })}
           >
-            Switch to {ritualChain.name}
+            {isSwitching ? (
+              <>
+                <Spinner /> Switching…
+              </>
+            ) : (
+              <>Switch to {ritualChain.name}</>
+            )}
           </Button>
         ) : (
           <Badge tone="green">{ritualChain.name}</Badge>
