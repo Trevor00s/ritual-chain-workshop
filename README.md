@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🔒 Sealed — AI Bounty Judge
+# 🔒 Sealed AI Bounty Judge
 
 **Privacy-preserving bounties on Ritual Chain.**
 
