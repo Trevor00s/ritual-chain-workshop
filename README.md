@@ -41,14 +41,14 @@ Binding the commitment to `msg.sender` and `bountyId` means a hash cannot be rep
 
 ## Tracks
 
-- **Required — Commit-Reveal (implemented):** one contract, [`AIJudge.sol`](hardhat/contracts/AIJudge.sol), deployed live on Ritual and wired into the app.
-- **Advanced — Ritual-native TEE (design note):** a design for keeping answers *encrypted end-to-end* (never public, even after judging) using Ritual's TEE + DKMS — see [`ADVANCED.md`](ADVANCED.md). This repo intentionally ships a **single implemented contract**; the advanced track is documented as a design (which the assignment explicitly allows).
+- **Required — Commit-Reveal (implemented):** [`AIJudge.sol`](hardhat/contracts/AIJudge.sol), deployed live on Ritual and wired into the app.
+- **Advanced — Sealed submissions (implemented + deployed):** [`SealedJudge.sol`](hardhat/contracts/SealedJudge.sol) — answers are ECIES-encrypted to a **per-bounty DKMS key** (never public, no reveal phase) and the AI **verdict is sealed to the owner**. Deployed on Ritual at [`0x14D0…84c5`](https://explorer.ritualfoundation.org/address/0x14D0e0788359ef2c2B832EF36714c9b1904684c5); client in [`ritualSecrets.ts`](web/src/lib/ritualSecrets.ts); see [`ADVANCED.md`](ADVANCED.md).
 
-| | Commit-Reveal (this repo) | Ritual-native TEE (design) |
+| | Commit-Reveal (`AIJudge`) | Sealed (`SealedJudge`) |
 |---|---|---|
 | Hidden during submission | ✅ hash only | ✅ ciphertext only |
 | Hidden during judging | revealed first (public) | ✅ decrypted only inside the enclave |
-| On-chain after judging | plaintext answers | AI review + `revealedAnswersRef` / `revealedAnswersHash` |
+| Verdict | public | ✅ sealed to owner, optional reveal |
 | Runs on | any EVM chain | Ritual (TEE + DKMS + LLM precompile) |
 
 Write-ups: **[`SUBMISSION.md`](SUBMISSION.md)** (architecture note + reflection) · **[`ADVANCED.md`](ADVANCED.md)** (the encrypted-submission design + diagram).

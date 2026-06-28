@@ -1,6 +1,6 @@
 # Privacy-Preserving AI Bounty Judge — Submission
 
-Track: **Required (Commit-Reveal)**, plus an **architecture design for the Advanced (Ritual-native)** track.
+Track: **Required (Commit-Reveal)**, plus an **implemented + deployed Advanced (Sealed, Ritual-native)** track.
 
 ## The problem we fixed
 
@@ -61,10 +61,11 @@ createBounty ──► COMMIT phase ──► REVEAL phase ──► JUDGE ─�
 (The live LLM step in `judgeAll` runs against Ritual's `0x0802` precompile on chain 1979; locally
 we test every guard up to that call.)
 
-The advanced (Ritual-native TEE) track is documented as a **design** — see [`ADVANCED.md`](ADVANCED.md) —
-so this repo ships a single implemented contract (`AIJudge`). The full commit→reveal→judge→finalize
-loop is verified live on Ritual (bounty 2): GLM-4.7-FP8 returned `{"winnerIndex": 0, "summary": "ok"}`
-and the winner was finalized on-chain.
+The advanced (Sealed, Ritual-native) track is now **implemented and deployed** — `SealedJudge` at
+`0x14D0…84c5` on Ritual — see [`ADVANCED.md`](ADVANCED.md). This repo ships **two** contracts:
+`AIJudge` (commit-reveal) and `SealedJudge` (encrypted submissions with a sealed verdict). The full
+commit→reveal→judge→finalize loop is verified live on Ritual (bounty 2): GLM-4.7-FP8 returned
+`{"winnerIndex": 0, "summary": "ok"}` and the winner was finalized on-chain.
 
 ## Architecture note
 
@@ -79,7 +80,12 @@ and the winner was finalized on-chain.
 - **Trust model:** the chain enforces timing and the hash binding; it does not need to keep secrets.
   The only thing a participant must protect is their own answer+salt until reveal.
 
-### Advanced track (Ritual-native, TEE) — design
+### Advanced track (Sealed, Ritual-native) — implemented
+
+> **Deployed:** `SealedJudge` at `0x14D0…84c5` on Ritual. The shipped implementation keeps ciphertext
+> **on-chain** (ECIES-encrypted to a per-bounty **DKMS key**) and **seals the verdict** to the owner —
+> full specifics in [`ADVANCED.md`](ADVANCED.md). The DA-bundle variant described below is an
+> alternative that keeps ciphertext off-chain; both share the TEE + DKMS + batch-judging core.
 
 Goal: answers stay encrypted (not just hashed) and are never public, even after judging.
 

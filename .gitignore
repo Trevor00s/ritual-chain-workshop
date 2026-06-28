@@ -1,0 +1,6 @@
+/out/
+/cache/
+.DS_Store
+node_modules/
+web/.next/
+web/node_modules/

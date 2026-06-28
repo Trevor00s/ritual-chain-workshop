@@ -1,115 +1,95 @@
-# Advanced Track — Ritual-Native Hidden Submissions (Design)
+# Advanced Track — Sealed Submissions (Implemented)
 
-This is the **design** for the advanced track. The repo intentionally ships a **single implemented
-contract** (`hardhat/contracts/AIJudge.sol`, commit-reveal). This document describes how a
-Ritual-native version would keep answers **encrypted end to end** — no plaintext answer ever
-published on-chain, not even after judging. (The homework explicitly allows the advanced track to
-be a design document.)
+> **Deployed:** `SealedJudge` at [`0x14D0e0788359ef2c2B832EF36714c9b1904684c5`](https://explorer.ritualfoundation.org/address/0x14D0e0788359ef2c2B832EF36714c9b1904684c5)
+> on Ritual (chain 1979, tx `0xfd44832bdd4605b90ce76fd9387a3480767a7eac77c6e3f7a411a42df2b45d7d`).
+> Contract: `hardhat/contracts/SealedJudge.sol` · Client: `web/src/lib/ritualSecrets.ts` ·
+> Tests: `hardhat/test/SealedJudge.ts` (11 passing).
 
-The commit-reveal track already hides answers during submission. Its one limitation: answers become
-public during the reveal phase, *before* the AI compares them. The design below closes that gap.
+This track is **implemented**, not just designed. Unlike commit-reveal, answers are **never**
+published on-chain and there is **no reveal phase**. "Sealed" is meant both ways: answers are
+**sealed coming in**, and the AI **verdict is sealed going out** (encrypted to the owner).
 
-## Flow
+## What makes this take distinct
+
+| Profile | Where ciphertext lives | Encrypted to | Verdict |
+|---|---|---|---|
+| rivale (`AIJudgeTEE`) | off-chain DA (StorageRef) | DKMS bounty key | public bundle ref + hash |
+| roan (`SealedAIJudge`) | on-chain | **executor** key (node-bound) | public |
+| **trevor (`SealedJudge`)** | **on-chain** | **per-bounty DKMS key** (identity-bound, portable across executors) | **sealed to the owner**, optional published reveal |
+
+## Lifecycle
 
 ```
-participant                DA (HF / IPFS / GCS)        privacy contract (chain)     Ritual TEE executor
-   |  encrypt(answer) to bounty DKMS key   |                    |                          |
-   |------------ ciphertext --------------->|                    |                          |
-   |  submitEncrypted(bountyId, commitment, ciphertextRef) ----->| store ref + hash         |
-   |                                        |                    | (no plaintext)           |
-  --- submission deadline passes ---        |                    |                          |
-   owner: judgeAll(bountyId, llmInput, bundleRef, bundleHash) -->| LLM precompile (0x0802) ->| fetch every ciphertext
-   |                                        |<--- DKMS-decrypt inside enclave --------------| (private key never leaves TEE)
-   |                                        |     build ONE batch prompt -> LLM             |
-   |                                        |     publish revealed bundle ----------------->|
-   |                                        |    review + bundleRef + bundleHash --------->| onResult
-   owner: finalizeWinner(bountyId, idx) ---------------------->| pay winner (human ratifies)|
+createBounty(title, rubric, deadline, dkmsPubKey, ownerVerdictKey)   // register both keys
+        │
+entrant: encryptAnswer(dkmsPubKey, me, answer)  ──ECIES──▶  submitSealed(bountyId, ciphertext)
+        │                                                   (only ciphertext on-chain)
+   — submission deadline —
+        │
+owner:  buildSealedJudgeInput(...) ─▶ judgeAll(bountyId, llmInput)  ─▶ LLM precompile 0x0802 (TEE)
+        │   encryptedSecrets = ciphertexts, piiEnabled = true,        decrypt in-enclave,
+        │   userPublicKey = ownerVerdictKey                            substitute {{ANSWER_<addr>}},
+        │                                                             judge once, seal verdict
+   stored: encryptedVerdict (ciphertext to owner)
+        │
+owner:  publishVerdict(bountyId, plaintext)   // optional transparency: stores text + keccak256
+owner:  finalizeWinner(bountyId, winnerIndex) // pays the winning entrant
 ```
 
 ## Required explanations (per the homework)
 
 **Where do plaintext answers exist, and who can read them?**
-Plaintext exists in exactly two places: (1) on the participant's own machine before they encrypt,
-and (2) transiently inside the Ritual TEE enclave during the `judgeAll` inference. Nobody else —
-not other participants, not the bounty owner, not an on-chain observer — can read it. At rest in the
-DA provider it is ciphertext; on-chain it is only a reference and a hash.
+Only (1) in the entrant's browser before encryption, and (2) transiently inside the Ritual TEE
+during `judgeAll`. No other party — not other entrants, not the owner, not an on-chain observer —
+can read an answer. The AI verdict is likewise sealed: it is decryptable only by the owner.
 
 **What is stored on-chain vs off-chain?**
-- **On-chain:** bounty metadata (title, rubric, reward, deadline), and per submission a `commitment`
-  hash + a `StorageRef` (platform, path, keyRef) pointing at the ciphertext. After judging: the AI
-  review, plus `revealedAnswersRef` and `revealedAnswersHash`. No answer text.
-- **Off-chain (DA: HF / IPFS / GCS):** the encrypted answers and the published revealed-answers
-  bundle. Large content lives here; the chain only commits to it with a 32-byte hash.
+- **On-chain:** bounty metadata, the per-bounty **DKMS public key**, one **ciphertext** per
+  submission, and the **sealed verdict** (ciphertext). Optionally a later-published verdict string
+  plus its `keccak256`. No answer plaintext, ever.
+- **Off-chain / in-enclave:** the plaintext answers and the decrypted verdict, which exist only
+  inside the TEE (and the owner's machine after they decrypt the verdict).
 
 **How does the LLM receive all submissions for batch judging?**
-`judgeAll` makes a **single** call to the LLM inference precompile (`0x0802`). The executor, inside
-the TEE, reads every ciphertext referenced on-chain, DKMS-decrypts them with the bounty key (which
-exists only in the enclave), assembles **one** prompt containing the rubric and all answers, and
-runs **one** inference that returns a ranked review. There is no per-answer LLM call and no loop of
-inference calls in Solidity.
+`judgeAll` makes a **single** call to the LLM precompile (`0x0802`). The ciphertexts ride in
+`encryptedSecrets` with `piiEnabled = true`; the executor DKMS-decrypts them inside the enclave,
+substitutes each `{{ANSWER_<addr>}}` placeholder into **one** batched prompt, and runs **one**
+inference. No per-answer call, no Solidity loop of inferences.
 
-**How does the final reveal happen, and how does the contract commit to it?**
-After judging, the TEE writes a single revealed-answers bundle to DA and returns its location and
-hash. `judgeAll` stores `revealedAnswersRef` (where the bundle is) and `revealedAnswersHash`
-(`keccak256` of the bundle bytes). Anyone can fetch the bundle and re-hash it to confirm it matches
-what was judged — committing to the final revealed set without holding it.
+**Why a per-bounty DKMS key instead of the executor key?**
+A DKMS key (precompile `0x081B`) is derived inside the TEE and bound to an on-chain identity, not
+to a specific node — so the ciphertext stays decryptable even if a different executor runs the job.
+roan encrypts to the executor key (node-bound); this profile encrypts to the bounty's identity.
 
-**Why not store plaintext on-chain?**
-Ten answers of up to a few KB each would be expensive and would also defeat the privacy goal. Store
-one ciphertext reference per submission and one 32-byte hash for the final bundle instead.
+**Why seal the verdict too?**
+Setting `userPublicKey = ownerVerdictKey` makes the precompile return the ranking **encrypted to the
+owner**. The owner reads it privately and ratifies a winner; `publishVerdict` then optionally posts
+the plaintext with a hash so anyone can confirm it matches what was sealed.
 
-## Ritual focus (beyond "just call an LLM")
+## In this repo
 
-- **Encrypted secrets / private inputs:** answers are ECIES-encrypted to a DKMS-derived bounty key;
-  storage credentials live in the executor's encrypted secrets, never in plaintext on-chain.
-- **TEE-backed execution:** judging sees private inputs while keeping them hidden from the public
-  chain. Attestation is the trust anchor that decryption happened only inside the enclave.
-- **Batch judging:** one inference over the whole set, not one call per answer.
-- **Human-in-the-loop:** the AI recommends a ranking; the owner calls `finalizeWinner` to pay. The
-  contract never auto-pays from raw AI output.
-
-## Proposed contract surface (design)
-
-| Function | Purpose |
+| Step | Where |
 |---|---|
-| `createBounty(title, rubric, submissionDeadline)` | escrow reward, open submissions |
-| `submitEncrypted(bountyId, commitment, ciphertextRef)` | store hash + ciphertext ref, no plaintext |
-| `judgeAll(bountyId, llmInput, revealedAnswersRef, revealedAnswersHash)` | batch TEE judging, commit to bundle |
-| `finalizeWinner(bountyId, winnerIndex)` | owner ratifies + pays |
-| `getBounty` / `getSubmission` | views; `getSubmission` returns the ciphertext ref, never plaintext |
+| Entrant encrypts to the bounty DKMS key (ECIES, 12-byte nonce) | `encryptAnswer()` in `ritualSecrets.ts` |
+| Ciphertext stored on-chain — no plaintext field | `SealedJudge.submitSealed(bountyId, ciphertext)` |
+| Owner builds the batched, sealed-verdict request | `buildSealedJudgeInput()` in `ritualSecrets.ts` |
+| TEE decrypts, substitutes, judges once, seals verdict | `SealedJudge.judgeAll(bountyId, llmInput)` |
+| Owner publishes the decrypted verdict (optional) | `SealedJudge.publishVerdict(bountyId, text)` |
+| Owner pays the winner | `SealedJudge.finalizeWinner(bountyId, winnerIndex)` |
 
-## Example final output shape
+## Honest limitation
 
-```json
-{
-  "winnerIndex": 2,
-  "ranking": [{ "index": 2, "score": 94, "reason": "Best satisfies the rubric." }],
-  "revealedAnswersRef": "ipfs://… or storage-ref://…",
-  "revealedAnswersHash": "0x…",
-  "summary": "Submission 2 is the strongest answer."
-}
-```
+The contract, the ECIES encryption (verified round-trip), the on-chain ciphertext storage, access
+control, and request encoding are all implemented and tested. The one part that needs **live**
+Ritual infrastructure is the in-enclave step at `judgeAll`: a funded RitualWallet, a registered TEE
+executor, and a real DKMS-derived bounty key. Local hardhat tests cover everything up to (and the
+guards around) that call, since the `0x0802` precompile cannot run in a local node.
 
-## Keeping answers out of calldata
+## Commit-reveal vs this Sealed track
 
-A naive design that inlines answers into the `judgeAll` prompt would put answer plaintext into
-on-chain calldata. The design keeps answers off-chain instead: the `judgeAll` calldata carries only
-the rubric (public), a generic "judge the submissions in the attached history" instruction, the
-`convoHistory` `StorageRef`, and the DA credential **ECIES-encrypted to the executor's public key**.
-No answer plaintext appears on-chain. The executor decrypts the credential inside the TEE, loads the
-bundle as context, and judges all answers in one batched inference.
-
-Honest limitation: Ritual's LLM `convoHistory` is stored as plaintext JSONL off-chain (only the
-access credential is encrypted, to the enclave), so this gives *off-chain + TEE-gated access*, not
-*encryption at rest*. For answers that must stay ciphertext even at rest through judging, the FHE
-precompile (`0x0807`) is the path — a larger build, noted as future work.
-
-## Commit-reveal vs Ritual-native (summary)
-
-| | Commit-reveal (implemented) | Ritual-native TEE (design) |
+| | Commit-reveal (`AIJudge`) | Sealed (`SealedJudge`) |
 |---|---|---|
-| Hidden during submission | Yes (hash) | Yes (ciphertext) |
-| Hidden during judging | No (revealed first) | Yes (decrypted only in enclave) |
-| Public after judging | Yes (on-chain) | Optional (bundle ref + hash) |
-| Chain | Any EVM | Ritual (TEE + DKMS + LLM) |
-| Best for | Open contests | Answers with lasting value |
+| Hidden during submission | yes (hash) | yes (ciphertext) |
+| Hidden during judging | no (revealed first) | yes (decrypted only in enclave) |
+| Verdict | public | sealed to owner, optional reveal |
+| Chain | any EVM | Ritual (TEE + DKMS + LLM) |
