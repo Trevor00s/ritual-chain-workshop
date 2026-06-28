@@ -327,7 +327,7 @@ export default function Home() {
               color="amber"
               className="sm:col-span-2"
               title="Portable, or fully private on Ritual"
-              body="The commit-reveal contract runs on any EVM chain. The advanced AIJudgeTEE variant keeps answers encrypted end-to-end and decrypts them only inside a Ritual TEE for judging."
+              body="The commit-reveal contract runs on any EVM chain. A Ritual-native TEE design (see ADVANCED.md) would keep answers encrypted end-to-end, decrypted only inside the enclave for judging."
               icon={
                 <svg viewBox="0 0 24 24" className="h-4 w-4" {...ic}>
                   <circle cx="12" cy="12" r="9" />

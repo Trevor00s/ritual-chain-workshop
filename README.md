@@ -8,7 +8,7 @@ Answers stay *sealed* behind a commit–reveal flow, are judged by Ritual AI in 
 
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.24-363636?logo=solidity&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-27%20passing-3fb950)
+![Tests](https://img.shields.io/badge/tests-11%20passing-3fb950)
 ![Ritual](https://img.shields.io/badge/Ritual-chain%201979-8b5cf6)
 
 </div>
@@ -37,17 +37,19 @@ createBounty ─▶ COMMIT (hash only) ─▶ REVEAL (answer+salt) ─▶ JUDGE 
 
 Binding the commitment to `msg.sender` and `bountyId` means a hash cannot be replayed by someone else or reused across bounties.
 
-## Two tracks in this repo
+## Tracks
 
-| | Required — Commit-Reveal | Advanced — Ritual-Native TEE |
+- **Required — Commit-Reveal (implemented):** one contract, [`AIJudge.sol`](hardhat/contracts/AIJudge.sol), deployed live on Ritual and wired into the app.
+- **Advanced — Ritual-native TEE (design note):** a design for keeping answers *encrypted end-to-end* (never public, even after judging) using Ritual's TEE + DKMS — see [`ADVANCED.md`](ADVANCED.md). This repo intentionally ships a **single implemented contract**; the advanced track is documented as a design (which the assignment explicitly allows).
+
+| | Commit-Reveal (this repo) | Ritual-native TEE (design) |
 |---|---|---|
-| Contract | [`AIJudge.sol`](hardhat/contracts/AIJudge.sol) | [`AIJudgeTEE.sol`](hardhat/contracts/AIJudgeTEE.sol) |
 | Hidden during submission | ✅ hash only | ✅ ciphertext only |
 | Hidden during judging | revealed first (public) | ✅ decrypted only inside the enclave |
-| On-chain footprint after judging | plaintext answers | AI review + `revealedAnswersRef` / `revealedAnswersHash` |
+| On-chain after judging | plaintext answers | AI review + `revealedAnswersRef` / `revealedAnswersHash` |
 | Runs on | any EVM chain | Ritual (TEE + DKMS + LLM precompile) |
 
-Design write-ups: **[`SUBMISSION.md`](SUBMISSION.md)** (architecture note + reflection) and **[`ADVANCED.md`](ADVANCED.md)** (the encrypted-submission flow and diagram).
+Write-ups: **[`SUBMISSION.md`](SUBMISSION.md)** (architecture note + reflection) · **[`ADVANCED.md`](ADVANCED.md)** (the encrypted-submission design + diagram).
 
 ## Repository layout
 
@@ -55,12 +57,9 @@ Design write-ups: **[`SUBMISSION.md`](SUBMISSION.md)** (architecture note + refl
 .
 ├── hardhat/                     # Solidity + tests (Hardhat 3 · viem)
 │   ├── contracts/
-│   │   ├── AIJudge.sol          # Required track — commit-reveal bounty
-│   │   ├── AIJudgeTEE.sol       # Advanced track — encrypted submissions
+│   │   ├── AIJudge.sol          # The contract — commit-reveal bounty
 │   │   └── utils/               # Ritual precompile helper
-│   ├── test/
-│   │   ├── AIJudge.ts           # 11 commit-reveal cases (valid + invalid reveals)
-│   │   └── AIJudgeTEE.ts        # 16 advanced-track cases
+│   ├── test/AIJudge.ts          # 11 commit-reveal cases (valid + invalid reveals)
 │   └── scripts/                 # deploy + live commit→reveal→judge→finalize demos
 └── web/                         # Next.js 16 frontend (App Router · Tailwind v4 · wagmi)
     └── src/{app,components,hooks,lib,config,abi}
@@ -70,7 +69,7 @@ Design write-ups: **[`SUBMISSION.md`](SUBMISSION.md)** (architecture note + refl
 
 > Prerequisites: Node 18+, a browser wallet, and a Ritual RPC endpoint. `pnpm` or `npm` both work.
 
-**Contracts — compile & test (27 passing: 11 commit-reveal + 16 TEE):**
+**Contracts — compile & test (11 commit-reveal cases):**
 
 ```bash
 cd hardhat
@@ -92,9 +91,8 @@ npm run dev                     # http://localhost:3000
 | Contract | Address |
 |----------|---------|
 | `AIJudge` (commit-reveal) | `0x09d9973048fdc9b8d9dd04575d25093df798b121` |
-| `AIJudgeTEE` (encrypted) | `0x8fb50452524fda4284b17b793d519a90fdd72b5d` |
 
-Both were exercised end-to-end on-chain (commit → reveal → batched judge → finalize). See [`hardhat/scripts`](hardhat/scripts).
+Exercised end-to-end on-chain (commit → reveal → batched judge → finalize). See [`hardhat/scripts`](hardhat/scripts).
 
 > ⚠️ Ritual reports `block.timestamp` in **milliseconds**, so all deadlines — in the contract and the UI — use millisecond timestamps.
 
@@ -104,7 +102,8 @@ A polished dashboard ("Sealed") built with **Next.js 16 · TypeScript · Tailwin
 
 - A phase timeline that walks a visitor through commit → reveal → judge → finalize.
 - Create a bounty, load any bounty by id, and track recent ones (kept in `localStorage`, no indexer needed).
-- Phase-aware submission panel — it shows a hashed commit form before the deadline and a reveal form after.
+- Phase-aware submission panel: a hash-only commit form before the deadline (salt shown so you can keep it) and a reveal form after — with on-chain detection of your own commitment.
+- Auto add/switch to the Ritual network on connect.
 - Owner-only **Judge** and **Finalize** actions, with the AI ranking rendered as a scored table. The AI result is advisory; the owner makes the final call.
 
 ## Security & design notes
@@ -120,14 +119,14 @@ A polished dashboard ("Sealed") built with **Next.js 16 · TypeScript · Tailwin
 | Deliverable | Where |
 |-------------|-------|
 | Commit-reveal Solidity contract | [`hardhat/contracts/AIJudge.sol`](hardhat/contracts/AIJudge.sol) |
-| Advanced encrypted-submission contract | [`hardhat/contracts/AIJudgeTEE.sol`](hardhat/contracts/AIJudgeTEE.sol) |
 | Lifecycle README | this file |
 | Tests — valid & invalid reveal cases | [`hardhat/test/AIJudge.ts`](hardhat/test/AIJudge.ts) |
 | Architecture note (commit-reveal vs Ritual-native) | [`SUBMISSION.md`](SUBMISSION.md) · [`ADVANCED.md`](ADVANCED.md) |
+| Advanced track (design) | [`ADVANCED.md`](ADVANCED.md) |
 | Reflection (5–8 sentences) | [`SUBMISSION.md`](SUBMISSION.md) |
 
 ---
 
 <div align="center">
-<sub>Built for the Ritual Chain workshop · commit-reveal + TEE batch judging.</sub>
+<sub>Built for the Ritual Chain workshop · commit-reveal with batched AI judging.</sub>
 </div>
