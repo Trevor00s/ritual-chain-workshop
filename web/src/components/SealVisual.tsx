@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useRef, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 
 type Accent = "violet" | "amber" | "cyan" | "emerald";
 
@@ -141,41 +143,73 @@ const PHASES: Phase[] = [
 ];
 
 export function SealVisual() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  function handleMove(e: ReactMouseEvent<HTMLDivElement>) {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    el.style.transform = `perspective(1000px) rotateX(${(-py * 9).toFixed(2)}deg) rotateY(${(px * 11).toFixed(2)}deg)`;
+  }
+  function handleLeave() {
+    const el = ref.current;
+    if (el) el.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg)";
+  }
+
   return (
     <div className="relative mx-auto h-[22rem] w-full max-w-md animate-floaty">
-      {/* AI scan line */}
-      <div className="animate-scan pointer-events-none absolute inset-x-8 top-1 z-20 h-px bg-cyan-300/70 shadow-[0_0_14px_2px_rgba(34,211,238,0.55)]" />
+      {/* rotating gradient halo */}
+      <div
+        className="animate-spin-slow pointer-events-none absolute -inset-10 -z-10 rounded-[44px] opacity-50 blur-2xl"
+        style={{
+          background:
+            "conic-gradient(from 0deg, rgba(139,92,246,0.55), rgba(34,211,238,0.45), rgba(251,191,36,0.35), rgba(52,211,153,0.45), rgba(139,92,246,0.55))",
+        }}
+      />
 
-      {PHASES.map((p, i) => {
-        const a = A[p.accent];
-        return (
-          <div
-            key={p.tag}
-            className="phase-layer absolute inset-0"
-            style={{ animationDelay: `${-i * 3.25}s` }}
-          >
-            <div className={`absolute -inset-6 rounded-[34px] blur-3xl ${a.glow}`} />
-            <div className="border-gradient glass relative flex h-full flex-col justify-between rounded-3xl p-6">
-              <div className="flex items-center justify-between">
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ring-1 ring-inset ${a.chip}`}
-                >
-                  <Icon name={p.icon} />
-                  {p.tag}
-                </span>
-                <span className={`text-xs font-semibold ${a.text}`}>{p.status}</span>
-              </div>
+      {/* tilt surface (follows the cursor) */}
+      <div
+        ref={ref}
+        className="tilt relative h-full"
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
+      >
+        {/* AI scan line */}
+        <div className="animate-scan pointer-events-none absolute inset-x-8 top-1 z-20 h-px bg-cyan-300/70 shadow-[0_0_14px_2px_rgba(34,211,238,0.55)]" />
 
-              <div className="py-2">{p.body}</div>
+        {PHASES.map((p, i) => {
+          const a = A[p.accent];
+          return (
+            <div
+              key={p.tag}
+              className="phase-layer absolute inset-0"
+              style={{ animationDelay: `${-i * 3.25}s` }}
+            >
+              <div className={`absolute -inset-6 rounded-[34px] blur-3xl ${a.glow}`} />
+              <div className="border-gradient glass relative flex h-full flex-col justify-between rounded-3xl p-6">
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ring-1 ring-inset ${a.chip}`}
+                  >
+                    <Icon name={p.icon} />
+                    {p.tag}
+                  </span>
+                  <span className={`text-xs font-semibold ${a.text}`}>{p.status}</span>
+                </div>
 
-              <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <span className={`h-1.5 w-1.5 rounded-full ${a.dot}`} />
-                {p.foot}
+                <div className="py-2">{p.body}</div>
+
+                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                  <span className={`h-1.5 w-1.5 rounded-full ${a.dot}`} />
+                  {p.foot}
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

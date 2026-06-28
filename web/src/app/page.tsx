@@ -8,6 +8,7 @@ import { BountyView } from "@/components/BountyView";
 import { Logo } from "@/components/Logo";
 import { PhaseTimeline } from "@/components/PhaseTimeline";
 import { SealVisual } from "@/components/SealVisual";
+import { Reveal } from "@/components/Reveal";
 import { useRecentBounties } from "@/hooks/useRecentBounties";
 import { isContractConfigured, contractAddress } from "@/config/contract";
 import { ritualChain } from "@/config/wagmi";
@@ -60,7 +61,9 @@ function Feature({
   className?: string;
 }) {
   return (
-    <div className={`border-gradient glass relative overflow-hidden rounded-2xl p-5 ${className}`}>
+    <div
+      className={`hover-lift border-gradient glass relative overflow-hidden rounded-2xl p-5 ${className}`}
+    >
       <div
         className={`mb-3 inline-grid h-9 w-9 place-items-center rounded-xl ring-1 ring-inset ${GLYPH[color]}`}
       >
@@ -124,12 +127,18 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-4 pb-14 pt-14 sm:px-6 sm:pt-20">
         <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
+            <span
+              className="animate-hero-in inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200"
+              style={{ animationDelay: "0ms" }}
+            >
               <Dot tone="violet" />
               Privacy-preserving · Commit-Reveal · Ritual TEE
             </span>
 
-            <h1 className="mt-5 font-display text-5xl font-bold leading-[0.92] tracking-tight sm:text-7xl">
+            <h1
+              className="animate-hero-in mt-5 font-display text-5xl font-bold leading-[0.92] tracking-tight sm:text-7xl"
+              style={{ animationDelay: "90ms" }}
+            >
               Submit <span className="text-aurora">blind</span>.
               <br />
               Reveal late.
@@ -137,13 +146,19 @@ export default function Home() {
               Win fair.
             </h1>
 
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-zinc-400">
+            <p
+              className="animate-hero-in mt-6 max-w-xl text-base leading-relaxed text-zinc-400"
+              style={{ animationDelay: "190ms" }}
+            >
               A bounty where answers stay <span className="text-zinc-200">sealed</span> until the
               deadline closes. Commit a hash, reveal later, and let Ritual AI rank every entry in a
               single batch — no one can read or copy an answer before judging begins.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div
+              className="animate-hero-in mt-8 flex flex-wrap items-center gap-3"
+              style={{ animationDelay: "290ms" }}
+            >
               <a
                 href="#app"
                 className="shimmer relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-b from-violet-500 to-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-950/50 ring-1 ring-inset ring-white/10 transition hover:from-violet-400 hover:to-violet-500"
@@ -159,7 +174,10 @@ export default function Home() {
               </a>
             </div>
 
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-500">
+            <div
+              className="animate-hero-in mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-500"
+              style={{ animationDelay: "390ms" }}
+            >
               <span className="inline-flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 27 tests passing
@@ -175,77 +193,87 @@ export default function Home() {
             </div>
           </div>
 
-          <SealVisual />
+          <div className="animate-hero-in" style={{ animationDelay: "240ms" }}>
+            <SealVisual />
+          </div>
         </div>
       </section>
 
       {/* ----------------------------------------------------- How it works */}
       <section id="how" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <SectionHeading
-          eyebrow="Lifecycle"
-          title="Four phases, zero leaks"
-          sub="Answers are only ever exposed after the submission window has already closed."
-        />
-        <div className="border-gradient glass mt-8 rounded-3xl p-6 sm:p-8">
-          <PhaseTimeline />
-        </div>
+        <Reveal>
+          <SectionHeading
+            eyebrow="Lifecycle"
+            title="Four phases, zero leaks"
+            sub="Answers are only ever exposed after the submission window has already closed."
+          />
+        </Reveal>
+        <Reveal delay={120}>
+          <div className="border-gradient glass mt-8 rounded-3xl p-6 sm:p-8">
+            <PhaseTimeline />
+          </div>
+        </Reveal>
       </section>
 
       {/* -------------------------------------------------------- Bento grid */}
       <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Feature
-            color="violet"
-            className="sm:col-span-2"
-            title="Sealed submissions"
-            body="During the commit phase the chain stores only keccak256(answer, salt, sender, bountyId). The hash reveals nothing — latecomers can't read or clone an earlier answer."
-            icon={
-              <svg viewBox="0 0 24 24" className="h-4 w-4" {...ic}>
-                <rect x="5" y="11" width="14" height="9" rx="2" />
-                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-              </svg>
-            }
-          />
-          <Feature
-            color="cyan"
-            title="One batch verdict"
-            body="judgeAll runs a single Ritual AI call over every revealed answer — never one call per entry."
-            icon={
-              <svg viewBox="0 0 24 24" className="h-4 w-4" {...ic}>
-                <path d="M12 3l8 4-8 4-8-4 8-4zM4 12l8 4 8-4M4 17l8 4 8-4" />
-              </svg>
-            }
-          />
-          <Feature
-            color="emerald"
-            title="Human-in-the-loop"
-            body="The AI ranking is advisory. The bounty owner ratifies and releases the single reward."
-            icon={
-              <svg viewBox="0 0 24 24" className="h-4 w-4" {...ic}>
-                <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
-                <circle cx="9.5" cy="7" r="3.5" />
-                <path d="M17 11l2 2 4-4" />
-              </svg>
-            }
-          />
-          <Feature
-            color="amber"
-            className="sm:col-span-2"
-            title="Portable, or fully private on Ritual"
-            body="The commit-reveal contract runs on any EVM chain. The advanced AIJudgeTEE variant keeps answers encrypted end-to-end and decrypts them only inside a Ritual TEE for judging."
-            icon={
-              <svg viewBox="0 0 24 24" className="h-4 w-4" {...ic}>
-                <circle cx="12" cy="12" r="9" />
-                <path d="M3 12h18M12 3c2.5 2.5 3.5 6 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-6-3.5-9s1-6.5 3.5-9z" />
-              </svg>
-            }
-          />
-        </div>
+        <Reveal>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Feature
+              color="violet"
+              className="sm:col-span-2"
+              title="Sealed submissions"
+              body="During the commit phase the chain stores only keccak256(answer, salt, sender, bountyId). The hash reveals nothing — latecomers can't read or clone an earlier answer."
+              icon={
+                <svg viewBox="0 0 24 24" className="h-4 w-4" {...ic}>
+                  <rect x="5" y="11" width="14" height="9" rx="2" />
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                </svg>
+              }
+            />
+            <Feature
+              color="cyan"
+              title="One batch verdict"
+              body="judgeAll runs a single Ritual AI call over every revealed answer — never one call per entry."
+              icon={
+                <svg viewBox="0 0 24 24" className="h-4 w-4" {...ic}>
+                  <path d="M12 3l8 4-8 4-8-4 8-4zM4 12l8 4 8-4M4 17l8 4 8-4" />
+                </svg>
+              }
+            />
+            <Feature
+              color="emerald"
+              title="Human-in-the-loop"
+              body="The AI ranking is advisory. The bounty owner ratifies and releases the single reward."
+              icon={
+                <svg viewBox="0 0 24 24" className="h-4 w-4" {...ic}>
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                  <circle cx="9.5" cy="7" r="3.5" />
+                  <path d="M17 11l2 2 4-4" />
+                </svg>
+              }
+            />
+            <Feature
+              color="amber"
+              className="sm:col-span-2"
+              title="Portable, or fully private on Ritual"
+              body="The commit-reveal contract runs on any EVM chain. The advanced AIJudgeTEE variant keeps answers encrypted end-to-end and decrypts them only inside a Ritual TEE for judging."
+              icon={
+                <svg viewBox="0 0 24 24" className="h-4 w-4" {...ic}>
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M3 12h18M12 3c2.5 2.5 3.5 6 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-6-3.5-9s1-6.5 3.5-9z" />
+                </svg>
+              }
+            />
+          </div>
+        </Reveal>
       </section>
 
       {/* ------------------------------------------------------- App section */}
       <section id="app" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <SectionHeading eyebrow="Get started" title="Launch or open a bounty" />
+        <Reveal>
+          <SectionHeading eyebrow="Get started" title="Launch or open a bounty" />
+        </Reveal>
 
         {!isContractConfigured && (
           <div className="mt-6">
@@ -259,10 +287,12 @@ export default function Home() {
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <CreateBountyForm onCreated={handleCreated} />
-          <LoadBountyPanel selectedId={selectedId} onSelect={setSelectedId} recentIds={ids} />
-        </div>
+        <Reveal delay={100}>
+          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <CreateBountyForm onCreated={handleCreated} />
+            <LoadBountyPanel selectedId={selectedId} onSelect={setSelectedId} recentIds={ids} />
+          </div>
+        </Reveal>
 
         {selectedId !== null && (
           <div className="mt-6">
