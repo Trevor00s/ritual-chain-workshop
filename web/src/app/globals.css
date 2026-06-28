@@ -280,3 +280,46 @@
     transition: none !important;
   }
 }
+
+/* ------------------------------------------------ MagicUI keyframes (21st) */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap, 1rem)));
+  }
+}
+@keyframes gradient-x {
+  to {
+    background-position: 200% center;
+  }
+}
+@keyframes meteor {
+  0% {
+    transform: rotate(215deg) translateX(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(215deg) translateX(-560px);
+    opacity: 0;
+  }
+}
+@keyframes shiny {
+  0% {
+    background-position: calc(-100% - var(--shiny-w, 100px)) 0;
+  }
+  100% {
+    background-position: calc(100% + var(--shiny-w, 100px)) 0;
+  }
+}
+
+/* disable arbitrary (animate-[…]) keyframe effects for reduced-motion users */
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-["] {
+    animation: none !important;
+  }
+}

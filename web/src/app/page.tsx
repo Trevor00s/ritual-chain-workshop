@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { motion, type Variants } from "framer-motion";
 import { WalletConnect } from "@/components/WalletConnect";
 import { CreateBountyForm } from "@/components/CreateBountyForm";
 import { LoadBountyPanel } from "@/components/LoadBountyPanel";
@@ -9,11 +10,33 @@ import { Logo } from "@/components/Logo";
 import { PhaseTimeline } from "@/components/PhaseTimeline";
 import { SealVisual } from "@/components/SealVisual";
 import { Reveal } from "@/components/Reveal";
+import {
+  Meteors,
+  Spotlight,
+  AuroraText,
+  ShinyText,
+  NumberTicker,
+  BorderBeam,
+  MagicCard,
+  Marquee,
+} from "@/components/magic";
 import { useRecentBounties } from "@/hooks/useRecentBounties";
 import { isContractConfigured, contractAddress } from "@/config/contract";
 import { ritualChain } from "@/config/wagmi";
 import { shortenAddress } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { Notice, Dot } from "@/components/ui";
+
+/* ----------------------------------------------------------- motion vars */
+
+const container: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
+};
+const item: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
+};
 
 /* --------------------------------------------------------------- helpers */
 
@@ -46,6 +69,12 @@ const GLYPH: Record<string, string> = {
   emerald: "bg-emerald-500/15 text-emerald-200 ring-emerald-500/30",
   amber: "bg-amber-500/15 text-amber-200 ring-amber-500/30",
 };
+const GLOW_HEX: Record<string, string> = {
+  violet: "#8b5cf6",
+  cyan: "#22d3ee",
+  emerald: "#34d399",
+  amber: "#fbbf24",
+};
 
 function Feature({
   icon,
@@ -53,17 +82,18 @@ function Feature({
   body,
   color,
   className = "",
+  beam = false,
 }: {
   icon: ReactNode;
   title: string;
   body: string;
   color: keyof typeof GLYPH;
   className?: string;
+  beam?: boolean;
 }) {
   return (
-    <div
-      className={`hover-lift border-gradient glass relative overflow-hidden rounded-2xl p-5 ${className}`}
-    >
+    <MagicCard glow={GLOW_HEX[color]} className={cn("p-5", className)}>
+      {beam ? <BorderBeam size={64} duration={7} /> : null}
       <div
         className={`mb-3 inline-grid h-9 w-9 place-items-center rounded-xl ring-1 ring-inset ${GLYPH[color]}`}
       >
@@ -71,6 +101,17 @@ function Feature({
       </div>
       <h3 className="font-display text-base font-semibold text-zinc-100">{title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">{body}</p>
+    </MagicCard>
+  );
+}
+
+function HeroStat({ n, label }: { n: number; label: string }) {
+  return (
+    <div>
+      <div className="font-display text-2xl font-bold text-zinc-100">
+        <NumberTicker value={n} />
+      </div>
+      <div className="mt-0.5 text-[11px] uppercase tracking-wider text-zinc-500">{label}</div>
     </div>
   );
 }
@@ -82,6 +123,17 @@ const ic = {
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
 };
+
+const CHIPS = [
+  "Commit–Reveal",
+  "Sealed bids",
+  "Batch AI judging",
+  "Ritual TEE",
+  "Any EVM chain",
+  "keccak256 commitments",
+  "Human-in-the-loop",
+  "On-chain fairness",
+];
 
 /* ------------------------------------------------------------------ page */
 
@@ -124,83 +176,100 @@ export default function Home() {
       </header>
 
       {/* ------------------------------------------------------------ Hero */}
-      <section className="mx-auto max-w-6xl px-4 pb-14 pt-14 sm:px-6 sm:pt-20">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-          <div>
-            <span
-              className="animate-hero-in inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200"
-              style={{ animationDelay: "0ms" }}
-            >
-              <Dot tone="violet" />
-              Privacy-preserving · Commit-Reveal · Ritual TEE
-            </span>
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <Meteors number={18} />
+        </div>
+        <Spotlight />
 
-            <h1
-              className="animate-hero-in mt-5 font-display text-5xl font-bold leading-[0.92] tracking-tight sm:text-7xl"
-              style={{ animationDelay: "90ms" }}
-            >
-              Submit <span className="text-aurora">blind</span>.
-              <br />
-              Reveal late.
-              <br />
-              Win fair.
-            </h1>
-
-            <p
-              className="animate-hero-in mt-6 max-w-xl text-base leading-relaxed text-zinc-400"
-              style={{ animationDelay: "190ms" }}
-            >
-              A bounty where answers stay <span className="text-zinc-200">sealed</span> until the
-              deadline closes. Commit a hash, reveal later, and let Ritual AI rank every entry in a
-              single batch — no one can read or copy an answer before judging begins.
-            </p>
-
-            <div
-              className="animate-hero-in mt-8 flex flex-wrap items-center gap-3"
-              style={{ animationDelay: "290ms" }}
-            >
-              <a
-                href="#app"
-                className="shimmer relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-b from-violet-500 to-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-950/50 ring-1 ring-inset ring-white/10 transition hover:from-violet-400 hover:to-violet-500"
+        <div className="relative z-10 mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-20">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+            <motion.div variants={container} initial="hidden" animate="show">
+              <motion.span
+                variants={item}
+                className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-semibold"
               >
-                Launch a bounty
-                <span aria-hidden>→</span>
-              </a>
-              <a
-                href="#how"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:bg-white/[0.08]"
+                <Dot tone="violet" />
+                <ShinyText>Privacy-preserving · Commit-Reveal · Ritual TEE</ShinyText>
+              </motion.span>
+
+              <motion.h1
+                variants={item}
+                className="mt-5 font-display text-5xl font-bold leading-[0.92] tracking-tight sm:text-7xl"
               >
-                How it works
-              </a>
-            </div>
+                Submit <AuroraText>blind</AuroraText>.
+                <br />
+                Reveal late.
+                <br />
+                Win fair.
+              </motion.h1>
 
-            <div
-              className="animate-hero-in mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-500"
-              style={{ animationDelay: "390ms" }}
+              <motion.p
+                variants={item}
+                className="mt-6 max-w-xl text-base leading-relaxed text-zinc-400"
+              >
+                A bounty where answers stay <span className="text-zinc-200">sealed</span> until the
+                deadline closes. Commit a hash, reveal later, and let Ritual AI rank every entry in
+                a single batch — no one can read or copy an answer before judging begins.
+              </motion.p>
+
+              <motion.div variants={item} className="mt-8 flex flex-wrap items-center gap-3">
+                <a
+                  href="#app"
+                  className="relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-b from-violet-500 to-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-950/50 ring-1 ring-inset ring-white/10 transition hover:from-violet-400 hover:to-violet-500"
+                >
+                  Launch a bounty
+                  <span aria-hidden>→</span>
+                  <BorderBeam size={48} duration={5} />
+                </a>
+                <a
+                  href="#how"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:bg-white/[0.08]"
+                >
+                  How it works
+                </a>
+              </motion.div>
+
+              <motion.div
+                variants={item}
+                className="mt-10 flex flex-wrap items-center gap-x-10 gap-y-4"
+              >
+                <HeroStat n={27} label="tests passing" />
+                <HeroStat n={4} label="lifecycle phases" />
+                <HeroStat n={10} label="max entries / bounty" />
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
             >
-              <span className="inline-flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                27 tests passing
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                Live on {ritualChain.name} ({ritualChain.id})
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-                Zero answer leaks pre-deadline
-              </span>
-            </div>
-          </div>
-
-          <div className="animate-hero-in" style={{ animationDelay: "240ms" }}>
-            <SealVisual />
+              <SealVisual />
+            </motion.div>
           </div>
         </div>
       </section>
 
+      {/* --------------------------------------------------------- Marquee */}
+      <section className="relative border-y border-white/[0.06] bg-white/[0.015] py-5">
+        <Marquee pauseOnHover className="[--duration:32s]">
+          {CHIPS.map((c) => (
+            <span
+              key={c}
+              className="mx-3 inline-flex items-center gap-2 text-sm font-medium text-zinc-400"
+            >
+              <span className="h-1 w-1 rounded-full bg-violet-400" />
+              {c}
+            </span>
+          ))}
+        </Marquee>
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#07070b] to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#07070b] to-transparent" />
+      </section>
+
       {/* ----------------------------------------------------- How it works */}
-      <section id="how" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <section id="how" className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <Reveal>
           <SectionHeading
             eyebrow="Lifecycle"
@@ -221,6 +290,7 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Feature
               color="violet"
+              beam
               className="sm:col-span-2"
               title="Sealed submissions"
               body="During the commit phase the chain stores only keccak256(answer, salt, sender, bountyId). The hash reveals nothing — latecomers can't read or clone an earlier answer."
@@ -270,7 +340,7 @@ export default function Home() {
       </section>
 
       {/* ------------------------------------------------------- App section */}
-      <section id="app" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <section id="app" className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <Reveal>
           <SectionHeading eyebrow="Get started" title="Launch or open a bounty" />
         </Reveal>
