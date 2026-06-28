@@ -90,9 +90,9 @@ npm run dev                     # http://localhost:3000
 
 | Contract | Address |
 |----------|---------|
-| `AIJudge` (commit-reveal) | `0x09d9973048fdc9b8d9dd04575d25093df798b121` |
+| `AIJudge` (commit-reveal) | [`0x378F770b8DE19b8eFdf5e69ab129D38c321d34B0`](https://explorer.ritualfoundation.org/address/0x378F770b8DE19b8eFdf5e69ab129D38c321d34B0) |
 
-Exercised end-to-end on-chain (commit → reveal → batched judge → finalize). See [`hardhat/scripts`](hardhat/scripts).
+Deployed from the Trevor00s wallet — **deploy tx** `0xa4654826bf6ee9e43ed8af4eaf8cdd5ecc1156152fc292e5f296aeaf1a467e2a` (block 38738042). Exercised end-to-end on-chain (commit → reveal → batched judge → finalize). See [`hardhat/scripts`](hardhat/scripts).
 
 > ⚠️ Ritual reports `block.timestamp` in **milliseconds**, so all deadlines — in the contract and the UI — use millisecond timestamps.
 
